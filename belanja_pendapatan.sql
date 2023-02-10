@@ -1,0 +1,140 @@
+-- LRA Pendapatan dan Belanja
+SELECT d.UNITKEY, d.KDUNIT, d.NMUNIT, isnull(a.PENDAPATAN,0) PENDAPATAN , b.BELANJA 
+FROM 
+(SELECT * FROM DAFTUNIT d WHERE d.KDLEVEL=3) d
+LEFT JOIN (
+			SELECT a.unitkey, SUM(a.KREDIT) - SUM(a.DEBET) PENDAPATAN
+			FROM (
+			SELECT unitkey, kdprgrm, kdkeg, jmatangd JMATANG, 
+			mtgkeyd MTGKEY, kdperd KDPER, nmperd NMPER, NILAID DEBET,0 KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID)<=12
+			AND LEFT(KDPERD,1) IN ('4')  AND  TGL_VALID IS NOT NULL 
+			AND (KDPERD IS NOT NULL AND KDPERD<>'') 
+
+			UNION ALL
+
+			SELECT unitkey, kdprgrm, kdkeg, JMATANGK JMATANG, 
+			MTGKEYK MTGKEY, KDPERK KDPER, NMPERK NMPER,0 DEBET, NILAIK KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID) <=12
+			AND LEFT(KDPERK,1) IN ('4') AND TGL_VALID IS NOT NULL 
+			AND (KDPERK IS NOT NULL AND KDPERK<>'')
+			) a
+			GROUP BY a.unitkey ) a ON a.UNITKEY = d.UNITKEY 
+
+LEFT JOIN (
+			SELECT b.unitkey, SUM(b.DEBET) - SUM(b.KREDIT) BELANJA
+			FROM (
+			SELECT unitkey, kdprgrm, kdkeg, jmatangd JMATANG, 
+			mtgkeyd MTGKEY, kdperd KDPER, nmperd NMPER, NILAID DEBET,0 KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID)<=12
+			AND LEFT(KDPERD,1) IN ('5')  AND  TGL_VALID IS NOT NULL 
+			AND (KDPERD IS NOT NULL AND KDPERD<>'') 
+
+			UNION ALL
+
+			SELECT unitkey, kdprgrm, kdkeg, JMATANGK JMATANG, 
+			MTGKEYK MTGKEY, KDPERK KDPER, NMPERK NMPER,0 DEBET, NILAIK KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID) <=12
+			AND LEFT(KDPERK,1) IN ('5') AND TGL_VALID IS NOT NULL 
+			AND (KDPERK IS NOT NULL AND KDPERK<>'')
+			) b
+			GROUP BY b.unitkey ) b ON b.UNITKEY = d.UNITKEY
+ORDER BY d.KDUNIT
+
+-- Ringkasan Belanja
+SELECT d.UNITKEY, d.KDUNIT, d.NMUNIT, b.BELANJA 
+FROM 
+(SELECT * FROM DAFTUNIT d WHERE d.KDLEVEL=3) d
+LEFT JOIN (
+			SELECT b.unitkey, SUM(b.DEBET) - SUM(b.KREDIT) BELANJA
+			FROM (
+			SELECT unitkey, kdprgrm, kdkeg, jmatangd JMATANG, 
+			mtgkeyd MTGKEY, kdperd KDPER, nmperd NMPER, NILAID DEBET,0 KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID)<=12
+			AND LEFT(KDPERD,1) IN ('5')  AND  TGL_VALID IS NOT NULL 
+			AND (KDPERD IS NOT NULL AND KDPERD<>'') 
+
+			UNION ALL
+
+			SELECT unitkey, kdprgrm, kdkeg, JMATANGK JMATANG, 
+			MTGKEYK MTGKEY, KDPERK KDPER, NMPERK NMPER,0 DEBET, NILAIK KREDIT	
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID) <=12
+			AND LEFT(KDPERK,1) IN ('5') AND TGL_VALID IS NOT NULL 
+			AND (KDPERK IS NOT NULL AND KDPERK<>'')
+			) b
+			GROUP BY b.unitkey ) b ON b.UNITKEY = d.UNITKEY
+ORDER BY d.KDUNIT
+
+-- Rincian Belanja
+SELECT d.NMUNIT, b.TGLBUKTI,  b.NOBUKTI, Replace(Replace(b.URAIAN, CHAR(10), ''), CHAR(13), '') URAIAN, b.KDPER,
+Replace(Replace(b.NMPER, CHAR(10), ''), CHAR(13), '') NMPER, b.BELANJA, b.tgl_valid  
+FROM 
+(SELECT * FROM DAFTUNIT d WHERE d.KDLEVEL=3) d
+LEFT JOIN (
+			SELECT b.unitkey, (b.DEBET - b.KREDIT) BELANJA, b.DEBET, b.URAIAN, b.NOBUKTI, b.TGLBUKTI, b.KDPER, b.NMPER, b.tgl_valid
+			FROM (
+			SELECT unitkey, kdprgrm, kdkeg, jmatangd JMATANG, 
+			mtgkeyd MTGKEY, kdperd KDPER, nmperd NMPER, NILAID DEBET, 0 KREDIT, uraian URAIAN, nobukti NOBUKTI, tglbukti TGLBUKTI, tgl_valid
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID)<=12
+			AND LEFT(KDPERD,1) IN ('5')  AND  TGL_VALID IS NOT NULL 
+			AND (KDPERD IS NOT NULL AND KDPERD<>'') 
+
+			UNION ALL
+
+			SELECT unitkey, kdprgrm, kdkeg, JMATANGK JMATANG, 
+			MTGKEYK MTGKEY, KDPERK KDPER, NMPERK NMPER, 0 DEBET, NILAIK KREDIT, uraian URAIAN, nobukti NOBUKTI, tglbukti TGLBUKTI, tgl_valid 
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID) <=12
+			AND LEFT(KDPERK,1) IN ('5') AND TGL_VALID IS NOT NULL 
+			AND (KDPERK IS NOT NULL AND KDPERK<>'')
+			) b ) b ON b.UNITKEY = d.UNITKEY
+ORDER BY d.KDUNIT
+
+-- Rincian Pendapatan
+SELECT d.NMUNIT, b.TGLBUKTI,  b.NOBUKTI, Replace(Replace(b.URAIAN, CHAR(10), ''), CHAR(13), '') URAIAN, b.KDPER,
+Replace(Replace(b.NMPER, CHAR(10), ''), CHAR(13), '') NMPER, b.PENDAPATAN, b.tgl_valid  
+FROM 
+(SELECT * FROM DAFTUNIT d WHERE d.KDLEVEL=3) d
+LEFT JOIN (
+			SELECT b.unitkey, (b.KREDIT - b.DEBET) PENDAPATAN, b.KREDIT, b.URAIAN, b.NOBUKTI, b.TGLBUKTI, b.KDPER, b.NMPER, b.tgl_valid
+			FROM (
+			SELECT unitkey, kdprgrm, kdkeg, jmatangd JMATANG, 
+			mtgkeyd MTGKEY, kdperd KDPER, nmperd NMPER, NILAID DEBET, 0 KREDIT, uraian URAIAN, nobukti NOBUKTI, tglbukti TGLBUKTI, tgl_valid
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID)<=12
+			AND LEFT(KDPERD,1) IN ('4')  AND  TGL_VALID IS NOT NULL 
+			AND (KDPERD IS NOT NULL AND KDPERD<>'') 
+
+			UNION ALL
+
+			SELECT unitkey, kdprgrm, kdkeg, JMATANGK JMATANG, 
+			MTGKEYK MTGKEY, KDPERK KDPER, NMPERK NMPER, 0 DEBET, NILAIK KREDIT, uraian URAIAN, nobukti NOBUKTI, tglbukti TGLBUKTI, tgl_valid 
+			FROM JURNAL 
+			WHERE JNS_JURNAL IN ('1','3','08') and kdstatus <> '142' 
+			AND MONTH(TGL_VALID) <=12
+			AND LEFT(KDPERK,1) IN ('4') AND TGL_VALID IS NOT NULL 
+			AND (KDPERK IS NOT NULL AND KDPERK<>'')
+			) b ) b ON b.UNITKEY = d.UNITKEY
+ORDER BY d.KDUNIT
+
+-- BKU Kasda Belanja
+SELECT b.TGLKAS, b.TGLVALID, b.NOBUKAS, b.NOBUKTIKAS, d.NMUNIT, b.NOSP2D,
+Replace(Replace(b.URAIAN, CHAR(10), ''), CHAR(13), '') URAIAN, s.NILAI  
+FROM BKUK b LEFT JOIN DAFTUNIT d ON b.UNITKEY = d.UNITKEY
+LEFT JOIN SP2DDETR s ON b.NOSP2D = s.NOSP2D;
